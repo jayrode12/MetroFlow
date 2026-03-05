@@ -1,0 +1,6 @@
+Flask
+pymongo
+pandas
+requests
+scikit-learn
+plotly

@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Daily Timetable | Mumbai Metro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #ffffff;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #f3f4f6 0%, #e5e7eb 100%);
+            color: #1f2937;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 2px 0 12px rgba(0,0,0,0.08);
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 30px 20px;
+            border-bottom: 2px solid #d1d5db;
+            text-align: center;
+        }
+
+        .sidebar-header h2 {
+            font-size: 20px;
+            margin-bottom: 5px;
+            color: #3b82f6;
+            font-weight: 700;
+        }
+
+        .sidebar-header p {
+            font-size: 12px;
+            opacity: 0.95;
+            color: #6b7280;
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 20px 0;
+        }
+
+        .nav-menu li {
+            margin-bottom: 5px;
+        }
+
+        .nav-menu a {
+            display: flex;
+            align-items: center;
+            padding: 14px 25px;
+            color: #4b5563;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+            font-weight: 500;
+        }
+
+        .nav-menu a:hover,
+        .nav-menu a.active {
+            background: linear-gradient(90deg, #dbeafe 0%, rgba(219, 174, 254, 0) 100%);
+            border-left-color: #3b82f6;
+            color: #3b82f6;
+        }
+
+        .nav-menu a i {
+            width: 30px;
+            font-size: 18px;
+            margin-right: 10px;
+        }
+
+        .logout-section {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 12px;
+            background: #ef4444;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+
+        .main-content {
+            margin-left: 280px;
+            flex: 1;
+            padding: 0;
+        }
+
+        .top-bar {
+            background: #ffffff;
+            padding: 20px 40px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .content-area {
+            padding: 40px;
+        }
+
+        .page-header {
+            margin-bottom: 30px;
+        }
+
+        .page-header h1 {
+            color: #111827;
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .page-header p {
+            color: #6b7280;
+            font-size: 16px;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+            padding: 35px;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 40px;
+            text-align: left;
+            border-left: 10px solid #3b82f6;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+            background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .badge {
+            background: #f3f4f6;
+            color: #374151;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: inline-block;
+            box-shadow: 0 2px 6px rgba(243, 244, 246, 0.4);
+            border: 1px solid #e5e7eb;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th {
+            background: #f3f4f6;
+            color: #374151;
+            padding: 12px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+            font-weight: 600;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        td {
+            border: 1px solid #e5e7eb;
+            padding: 10px;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+
+        tr:hover td {
+            background: #f9fafb;
+        }
+
+        tr:nth-child(even) {
+            background: #f9fafb;
+        }
+
+        .editable-cell {
+            background: #fef3c7;
+            border: 1px dashed #f59e0b !important;
+            cursor: text;
+            font-weight: 600;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+        }
+
+        .btn-lock {
+            background: #6b7280;
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        .btn-lock:hover {
+            background: #4b5563;
+        }
+
+        .btn-lock:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin: 20px 0;
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .back-link:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+            @media print {
+            .btn-lock, .back-link, .sidebar {
+                display: none;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .card {
+                box-shadow: none;
+                border: 1px solid #e5e7eb;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar Navigation -->
+<nav class="sidebar">
+    <div class="sidebar-header">
+        <h2><i class="fas fa-train"></i> MUMBAI METRO</h2>
+        <p>Line 1 Control Centre</p>
+    </div>
+
+    <ul class="nav-menu">
+        <li>
+            <a href="/">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </a>
+        </li>
+        <li>
+            <a href="/schedule" class="active">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Schedule</span>
+            </a>
+        </li>
+        <li>
+            <a href="/inventory">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Fleet Inventory</span>
+            </a>
+        </li>
+        <li>
+            <a href="#">
+                <i class="fas fa-chart-line"></i>
+                <span>Analytics</span>
+            </a>
+        </li>
+        <li>
+            <a href="#">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </a>
+        </li>
+    </ul>
+
+    <div class="logout-section">
+        <a href="/logout" class="logout-btn">
+            <i class="fas fa-sign-out-alt" style="margin-right: 10px;"></i>
+            LOGOUT
+        </a>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<main class="main-content">
+    <div class="top-bar">
+        <div>
+            <h2 style="color: #1f2937;">Timetable Management</h2>
+            <p style="color: #6b7280; font-size: 14px;">AI Generated Multi-Day Schedule</p>
+        </div>
+    </div>
+
+    <div class="content-area">
+        <div class="page-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1><i class="fas fa-calendar-check"></i> AI GENERATED SCHEDULE</h1>
+                    <p>Operational Forecast – Mumbai Metro Line 1</p>
+                </div>
+                <button class="stat-btn" onclick="generateNewSchedule()" style="padding: 14px 32px; font-size: 15px;">
+                    <i class="fas fa-sync-alt"></i> GENERATE NEW SCHEDULE
+                </button>
+            </div>
+        </div>
+
+        <div class="card" style="border-left-color:#9ca3af;">
+            <div class="status-header">
+                <h3><i class="fas fa-cloud-sun"></i> Weather Context: {{ cond }}</h3>
+                <span class="badge">Frequency: {{ gap }} min</span>
+            </div>
+            <p style="font-size: 15px; color: #6b7280;">
+                <i class="fas fa-info-circle"></i> Prediction based on <b>{{ temp }}°C</b> weather and historical passenger demand.
+            </p>
+        </div>
+
+        {% for day in schedules %}
+        <div class="card" id="card-{{ loop.index }}">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h2 style="color:#1f2937;"><i class="fas fa-clock"></i> Date: {{ day.date }}</h2>
+
+                <div>
+                    <small style="color: #6b7280;"><i class="fas fa-train"></i> Standby Rake: {{ day.standby }}</small><br>
+                    <button class="btn btn-lock"
+                            id="btn-{{ loop.index }}"
+                            onclick="lockDay('{{ day.date }}', {{ loop.index }}, '{{ day.standby }}')">
+                        <i class="fas fa-lock"></i> LOCK & SAVE
+                    </button>
+                </div>
+            </div>
+
+            <div style="max-height:450px; overflow-y:auto;">
+                <table id="table-{{ loop.index }}">
+                    <thead>
+                        <tr>
+                            <th>Sr No</th>
+                            <th>Rake No</th>
+                            <th>Departure Time</th>
+                            <th>Mode</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for row in day.timetable %}
+                        <tr>
+                            <td>{{ row.Serial_No }}</td>
+                            <td contenteditable="true" class="editable-cell">{{ row.Rake_No }}</td>
+                            <td contenteditable="true" class="editable-cell">{{ row.Time }}</td>
+                            <td>{{ row.Mode }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+
+        <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+    </div>
+</main>
+
+<script>
+function lockDay(dateStr, index, standbyRake) {
+
+    if (!confirm("Lock timetable for " + dateStr + "?")) return;
+
+    const btn = document.getElementById('btn-' + index);
+    btn.disabled = true;
+    btn.innerText = "Saving...";
+
+    let rows = document.querySelectorAll(`#table-${index} tbody tr`);
+    let timetable = [];
+
+    rows.forEach(row => {
+        let cols = row.querySelectorAll("td");
+        timetable.push({
+            Serial_No: cols[0].innerText.trim(),
+            Rake_No: cols[1].innerText.trim(),
+            Time: cols[2].innerText.trim(),
+            Mode: cols[3].innerText.trim()
+        });
+    });
+
+    fetch("/commit_schedule", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            date: dateStr,
+            standby: standbyRake,
+            timetable: timetable
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "success") {
+            alert("Schedule locked successfully");
+            btn.innerText = "LOCKED";
+            btn.style.background = "#6c757d";
+        } else {
+            alert("Save failed");
+            btn.disabled = false;
+            btn.innerText = "LOCK & SAVE";
+        }
+    })
+    .catch(() => {
+        alert("Server error");
+        btn.disabled = false;
+        btn.innerText = "LOCK & SAVE";
+    });
+}
+
+function generateNewSchedule() {
+    if (!confirm("Generate a new AI-powered schedule based on current weather and fleet availability?")) return;
+    
+    // Show loading state
+    const generateBtn = event.target.closest('button');
+    const originalText = generateBtn.innerHTML;
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    
+    // Call backend API to generate new schedule
+    fetch("/generate", {
+        method: "GET",
+        headers: {"Content-Type": "application/json"}
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "success") {
+            alert("New schedule generated successfully! Refreshing page...");
+            // Reload the page to show updated schedule
+            window.location.reload();
+        } else {
+            alert("Failed to generate schedule: " + data.message);
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = originalText;
+        }
+    })
+    .catch(err => {
+        alert("Error generating schedule: " + err);
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = originalText;
+    });
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fleet Command | Mumbai Metro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ffffff;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #f3f4f6 0%, #e5e7eb 100%);
+            color: #1f2937;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 2px 0 12px rgba(0,0,0,0.08);
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 30px 20px;
+            border-bottom: 2px solid #d1d5db;
+            text-align: center;
+        }
+
+        .sidebar-header h2 {
+            font-size: 20px;
+            margin-bottom: 5px;
+            color: #3b82f6;
+            font-weight: 700;
+        }
+
+        .sidebar-header p {
+            font-size: 12px;
+            opacity: 0.95;
+            color: #6b7280;
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 20px 0;
+        }
+
+        .nav-menu li {
+            margin-bottom: 5px;
+        }
+
+        .nav-menu a {
+            display: flex;
+            align-items: center;
+            padding: 14px 25px;
+            color: #4b5563;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+            font-weight: 500;
+        }
+
+        .nav-menu a:hover,
+        .nav-menu a.active {
+            background: linear-gradient(90deg, #dbeafe 0%, rgba(219, 174, 254, 0) 100%);
+            border-left-color: #3b82f6;
+            color: #3b82f6;
+        }
+
+        .nav-menu a i {
+            width: 30px;
+            font-size: 18px;
+            margin-right: 10px;
+        }
+
+        .logout-section {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 12px;
+            background: #ef4444;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+
+        .main-content {
+            margin-left: 280px;
+            flex: 1;
+            padding: 0;
+        }
+
+        .top-bar {
+            background: #ffffff;
+            padding: 20px 40px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .content-area {
+            padding: 40px;
+        }
+
+        .page-header {
+            margin-bottom: 30px;
+        }
+
+        .page-header h1 {
+            color: #111827;
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .page-header p {
+            color: #6b7280;
+            font-size: 16px;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #fef7ee 0%, #ffffff 100%);
+            padding: 35px;
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+            text-align: left;
+            border-left: 8px solid #f59e0b;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+            background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th {
+            background: #f3f4f6;
+            color: #374151;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        td {
+            border: 1px solid #e5e7eb;
+            padding: 14px;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+
+        tr:hover td {
+            background: #f9fafb;
+        }
+
+        .maintenance-row {
+            background: linear-gradient(90deg, #fef2f2 0%, #fee2e2 100%);
+        }
+
+        .km-input {
+            width: 100px;
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #fff9e6;
+            font-weight: bold;
+        }
+
+        .status-select {
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #fff9e6;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+        }
+
+        .btn-approve {
+            background: #10b981;
+            color: #ffffff;
+            flex: 2;
+        }
+
+        .btn-approve:hover {
+            background: #059669;
+        }
+
+        .btn-print {
+            background: #6c757d;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-print:hover {
+            background: #5a6268;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .back-link:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar Navigation -->
+<nav class="sidebar">
+    <div class="sidebar-header">
+        <h2><i class="fas fa-train"></i> MUMBAI METRO</h2>
+        <p>Line 1 Control Centre</p>
+    </div>
+
+    <ul class="nav-menu">
+        <li>
+            <a href="/">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </a>
+        </li>
+        <li>
+            <a href="/schedule">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Schedule</span>
+            </a>
+        </li>
+        <li>
+            <a href="/inventory" class="active">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Fleet Inventory</span>
+            </a>
+        </li>
+        <li>
+            <a href="#">
+                <i class="fas fa-chart-line"></i>
+                <span>Analytics</span>
+            </a>
+        </li>
+        <li>
+            <a href="#">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </a>
+        </li>
+    </ul>
+
+    <div class="logout-section">
+        <a href="/logout" class="logout-btn">
+            <i class="fas fa-sign-out-alt" style="margin-right: 10px;"></i>
+            LOGOUT
+        </a>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<main class="main-content">
+    <div class="top-bar">
+        <div>
+            <h2 style="color: #005DAA;">Fleet Management</h2>
+            <p style="color: #666; font-size: 14px;">Real-time Rake Health & Operational Sync</p>
+        </div>
+    </div>
+
+    <div class="content-area">
+        <div class="page-header">
+            <h1><i class="fas fa-clipboard-list"></i> FLEET MAINTENANCE COMMAND</h1>
+            <p>Monitor and manage rake health, mileage, and maintenance schedules</p>
+        </div>
+
+        <!-- CHART -->
+        <div class="card" style="border-left-color:#005DAA;">
+            <h3 style="color:#005DAA; margin-bottom: 20px;"><i class="fas fa-chart-bar"></i> Fleet Health Analytics</h3>
+            <div>{{ chart_html | safe }}</div>
+        </div>
+
+        <!-- TABLE -->
+        <div class="card">
+            <h3 style="color:#005DAA; margin-bottom: 15px;"><i class="fas fa-tools"></i> Managerial Override</h3>
+            <p style="font-size:14px; color:#666; margin-bottom: 20px;">
+                <i class="fas fa-info-circle"></i> Rakes marked <b>IN MAINTENANCE</b> are excluded from timetable generation.
+            </p>
+
+            <table id="inventoryTable">
+                <thead>
+                    <tr>
+                        <th>Rake ID</th>
+                        <th>Total Life KM</th>
+                        <th>KM Since Service</th>
+                        <th>Current Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for rake in inventory_data %}
+                    <tr data-id="{{ rake.rake_id }}"
+                        class="{% if rake.current_status == 'IN MAINTENANCE' %}maintenance-row{% endif %}">
+                        
+                        <td style="font-weight:bold; color:#005DAA;">
+                            <i class="fas fa-train"></i> {{ rake.rake_id }}
+                        </td>
+
+                        <td>{{ rake.total_distance_km }} km</td>
+
+                        <td>
+                            <input type="number"
+                                   class="km-input"
+                                   value="{{ rake.km_since_last_service }}">
+                        </td>
+
+                        <td>
+                            <select class="status-select">
+                                <option value="ACTIVE"
+                                    {% if rake.current_status == 'ACTIVE' %}selected{% endif %}>
+                                    ✓ ACTIVE
+                                </option>
+
+                                <option value="IN MAINTENANCE"
+                                    {% if rake.current_status == 'IN MAINTENANCE' %}selected{% endif %}>
+                                    ⚠️ IN MAINTENANCE
+                                </option>
+                            </select>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="btn-group">
+                <button onclick="commitChanges()" id="approveBtn" class="btn btn-approve">
+                    <i class="fas fa-check-circle"></i> APPROVE & COMMIT TO SYSTEM
+                </button>
+                <button onclick="window.print()" class="btn btn-print">
+                    <i class="fas fa-print"></i> PRINT REPORT
+                </button>
+            </div>
+        </div>
+
+        <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> Return to Dashboard</a>
+    </div>
+</main>
+
+<script>
+function commitChanges() {
+    if (!confirm("Confirm maintenance updates?")) return;
+
+    const btn = document.getElementById("approveBtn");
+    btn.innerText = "SYNCING...";
+    btn.disabled = true;
+
+    let rows = document.querySelectorAll("#inventoryTable tbody tr");
+    let payload = [];
+
+    rows.forEach(row => {
+        payload.push({
+            rake_id: row.dataset.id,
+            km: row.querySelector(".km-input").value,
+            status: row.querySelector(".status-select").value
+        });
+    });
+
+    fetch("/approve_inventory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "success") {
+            alert("✅ Fleet status updated successfully");
+            window.location.href = "/";
+        }
+    })
+    .catch(() => {
+        alert("❌ Server error");
+        btn.disabled = false;
+        btn.innerText = "✅ APPROVE & COMMIT TO SYSTEM";
+    });
+}
+</script>
+
+</body>
+</html>
+
