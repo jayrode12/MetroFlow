@@ -80,7 +80,7 @@
 
         .nav-menu a i {
             width: 30px;
-            font-size: 18px;
+            font-size: 18px; 
             margin-right: 10px;
         }
 
@@ -417,13 +417,7 @@
             <li>
                 <a href="#">
                     <i class="fas fa-chart-line"></i>
-                    <span>Analytics</span>
-                </a>
-            </li>
-            <li>
-                <a href="#">
-                    <i class="fas fa-cog"></i>
-                    <span>Settings</span>
+                    <span>Analysis</span>
                 </a>
             </li>
         </ul>
@@ -461,7 +455,7 @@
             {% if alerts %}
             <div class="alert-box">
                 <strong><i class="fas fa-exclamation-triangle"></i> MAINTENANCE ALERT:</strong>
-                The following Rakes have exceeded 5000km and are grounded: 
+                The following Rakes are in Maintenance right now  : 
                 <b>{{ alerts | join(', ') }}</b>
             </div>
             {% endif %}
@@ -484,17 +478,11 @@
 
                 <div class="stat-card success">
                     <div class="stat-icon">📊</div>
-                    <h3>Analytics</h3>
-                    <p>View performance metrics, passenger trends, and operational efficiency reports.</p>
-                    <a href="#" class="stat-btn">VIEW ANALYTICS</a>
+                    <h3>Analysis</h3>
+                    <p>View standby rake, locked timetables, and PDF schedule download.</p>
+                    <a href="/analytics" class="stat-btn">VIEW ANALYSIS</a>
                 </div>
 
-                <div class="stat-card danger">
-                    <div class="stat-icon">⚠️</div>
-                    <h3>Alerts & Notifications</h3>
-                    <p>Stay updated with critical system alerts, maintenance notifications, and warnings.</p>
-                    <a href="#" class="stat-btn">VIEW ALERTS</a>
-                </div>
             </div>
 
             <!-- Mumbai Metro Map -->

@@ -297,17 +297,12 @@
             </a>
         </li>
         <li>
-            <a href="#">
+            <a href="/analytics">
                 <i class="fas fa-chart-line"></i>
-                <span>Analytics</span>
+                <span>Analysis</span>
             </a>
         </li>
-        <li>
-            <a href="#">
-                <i class="fas fa-cog"></i>
-                <span>Settings</span>
-            </a>
-        </li>
+        
     </ul>
 
     <div class="logout-section">
@@ -335,7 +330,7 @@
 
         <!-- CHART -->
         <div class="card" style="border-left-color:#005DAA;">
-            <h3 style="color:#005DAA; margin-bottom: 20px;"><i class="fas fa-chart-bar"></i> Fleet Health Analytics</h3>
+            <h3 style="color:#005DAA; margin-bottom: 20px;"><i class="fas fa-chart-bar"></i> Fleet Health Analysis</h3>
             <div>{{ chart_html | safe }}</div>
         </div>
 
@@ -367,9 +362,7 @@
                         <td>{{ rake.total_distance_km }} km</td>
 
                         <td>
-                            <input type="number"
-                                   class="km-input"
-                                   value="{{ rake.km_since_last_service }}">
+                            <span class="km-display" data-km="{{ rake.km_since_last_service }}">{{ rake.km_since_last_service }} km</span>
                         </td>
 
                         <td>
@@ -418,7 +411,6 @@ function commitChanges() {
     rows.forEach(row => {
         payload.push({
             rake_id: row.dataset.id,
-            km: row.querySelector(".km-input").value,
             status: row.querySelector(".status-select").value
         });
     });
@@ -431,8 +423,13 @@ function commitChanges() {
     .then(res => res.json())
     .then(data => {
         if (data.status === "success") {
-            alert("✅ Fleet status updated successfully");
-            window.location.href = "/";
+            if (data.timetable_unlocked) {
+                alert("✅ Fleet updated. Timetable was unlocked due to data change. Please regenerate and re-lock the schedule (you will be asked to confirm before locking).");
+                window.location.href = "/schedule?unlocked=1";
+            } else {
+                alert("✅ Fleet status updated successfully");
+                window.location.href = "/";
+            }
         }
     })
     .catch(() => {

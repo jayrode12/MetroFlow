@@ -48,8 +48,15 @@ def index():
 
 @app.route('/inventory')
 def inventory():
-    """Render inventory page - fetches data from backend"""
+    """Render inventory page - ensures fleet kms are up to date from locked timetables, then fetches data from backend."""
     try:
+        # First, ask backend to apply mileage from any locked timetables (13th, 14th, etc.)
+        try:
+            requests.post(f'{BACKEND_URL}/api/update_fleet_from_locked_all', timeout=10)
+        except Exception as inner_e:
+            # Non-fatal: just log and continue to show whatever data is available
+            print(f"Backend fleet update error: {inner_e}")
+
         response = requests.get(f'{BACKEND_URL}/inventory', timeout=10)
         if response.status_code == 200:
             return response.content
@@ -61,16 +68,33 @@ def inventory():
 
 @app.route('/schedule')
 def schedule():
-    """Render schedule page - fetches data from backend"""
+    """Render schedule page - fetches data from backend (forwards query e.g. unlocked=1)"""
     try:
-        response = requests.get(f'{BACKEND_URL}/schedule', timeout=10)
+        url = f'{BACKEND_URL}/schedule'
+        if request.args:
+            url += '?' + '&'.join(f'{k}={v}' for k, v in request.args.items())
+        response = requests.get(url, timeout=10)
         if response.status_code == 200:
             return response.content
         else:
-            return render_template('schedule.html')
+            return render_template('schedule.html', schedules=[], unlocked=request.args.get('unlocked'))
     except Exception as e:
         print(f"Backend connection error: {e}")
-        return render_template('schedule.html')
+        return render_template('schedule.html', schedules=[], unlocked=request.args.get('unlocked'))
+
+
+@app.route('/analytics')
+def analytics():
+    """Render analytics page - fetches from backend"""
+    try:
+        response = requests.get(f'{BACKEND_URL}/analytics', timeout=10)
+        if response.status_code == 200:
+            return response.content
+        else:
+            return render_template('analytics.html', locked_schedules=[])
+    except Exception as e:
+        print(f"Backend connection error: {e}")
+        return render_template('analytics.html', locked_schedules=[])
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -130,7 +154,7 @@ def generate():
 
 @app.route('/approve_inventory', methods=['POST'])
 def approve_inventory():
-    """Approve inventory changes - proxy to backend"""
+    """Approve inventory changes - proxy to backend. Returns timetable_unlocked if fleet change unlocked schedule."""
     try:
         data = request.json
         response = requests.post(
@@ -193,6 +217,56 @@ def api_logs():
     try:
         response = requests.get(f'{BACKEND_URL}/api/logs', timeout=10)
         return response.json()
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+@app.route('/api/end_of_day', methods=['POST'])
+def api_end_of_day():
+    """Proxy end-of-day fleet update to backend"""
+    try:
+        response = requests.post(
+            f'{BACKEND_URL}/api/end_of_day',
+            json=request.get_json() or {},
+            headers={'Content-Type': 'application/json'},
+            timeout=10
+        )
+        return response.json()
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+
+@app.route('/api/report_change', methods=['POST'])
+def api_report_change():
+    """Proxy report change to backend"""
+    try:
+        response = requests.post(
+            f'{BACKEND_URL}/api/report_change',
+            json=request.get_json(),
+            headers={'Content-Type': 'application/json'},
+            timeout=10
+        )
+        return response.json()
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+
+@app.route('/api/locked_schedule_pdf/<date_str>')
+def api_locked_schedule_pdf(date_str):
+    """Proxy PDF download to backend (stream file)"""
+    try:
+        response = requests.get(
+            f'{BACKEND_URL}/api/locked_schedule_pdf/{date_str}',
+            timeout=15,
+            stream=True
+        )
+        if response.status_code != 200:
+            return jsonify({'status': 'error', 'message': 'PDF not found'}), response.status_code
+        from flask import Response
+        return Response(
+            response.iter_content(chunk_size=8192),
+            mimetype='application/pdf',
+            headers={'Content-Disposition': f'attachment; filename=schedule_{date_str}.pdf'}
+        )
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 

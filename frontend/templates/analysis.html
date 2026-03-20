@@ -1,0 +1,239 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Analysis | Mumbai Metro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: "Segoe UI", Arial, sans-serif; background: #ffffff; display: flex; min-height: 100vh; }
+      .sidebar {
+        width: 280px;
+        background: linear-gradient(180deg, #f3f4f6 0%, #e5e7eb 100%);
+        color: #1f2937;
+        position: fixed;
+        height: 100vh;
+        overflow-y: auto;
+        box-shadow: 2px 0 12px rgba(0,0,0,0.08);
+        z-index: 1000;
+      }
+      .sidebar-header { padding: 30px 20px; border-bottom: 2px solid #d1d5db; text-align: center; }
+      .sidebar-header h2 { font-size: 20px; margin-bottom: 5px; color: #3b82f6; font-weight: 700; }
+      .sidebar-header p { font-size: 12px; opacity: 0.95; color: #6b7280; }
+      .nav-menu { list-style: none; padding: 20px 0; }
+      .nav-menu li { margin-bottom: 5px; }
+      .nav-menu a {
+        display: flex; align-items: center; padding: 14px 25px; color: #4b5563; text-decoration: none;
+        transition: all 0.3s ease; border-left: 4px solid transparent; font-weight: 500;
+      }
+      .nav-menu a:hover, .nav-menu a.active {
+        background: linear-gradient(90deg, #dbeafe 0%, rgba(219, 174, 254, 0) 100%);
+        border-left-color: #3b82f6; color: #3b82f6;
+      }
+      .nav-menu a i { width: 30px; font-size: 18px; margin-right: 10px; }
+      .logout-section { position: absolute; bottom: 0; width: 100%; padding: 20px; border-top: 1px solid #d1d5db; }
+      .logout-btn {
+        display: flex; align-items: center; justify-content: center; width: 100%; padding: 12px;
+        background: #ef4444; color: #fff; border: none; border-radius: 8px; font-weight: bold; font-size: 14px;
+        cursor: pointer; text-decoration: none; transition: all 0.3s ease;
+      }
+      .logout-btn:hover { background: #dc2626; transform: translateY(-2px); }
+      .main-content { margin-left: 280px; flex: 1; padding: 0; }
+      .top-bar {
+        background: #fff; padding: 20px 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f3f4f6;
+      }
+      .content-area { padding: 40px; }
+      .page-header { margin-bottom: 30px; }
+      .page-header h1 { color: #111827; font-size: 32px; margin-bottom: 10px; font-weight: 700; }
+      .page-header p { color: #6b7280; font-size: 16px; }
+      .card {
+        background: linear-gradient(135deg, #f8fafc 0%, #fff 100%);
+        padding: 35px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        margin-bottom: 40px; border-left: 10px solid #3b82f6;
+      }
+      table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+      th { background: #f3f4f6; color: #374151; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #e5e7eb; }
+      td { border: 1px solid #e5e7eb; padding: 10px; font-size: 14px; }
+      .btn {
+        padding: 10px 20px; font-weight: bold; border-radius: 8px; cursor: pointer; border: none;
+        background: #3b82f6; color: #fff;
+      }
+      .btn:hover { background: #2563eb; }
+      .btn:disabled { background: #9ca3af; cursor: not-allowed; }
+      .back-link {
+        display: inline-block; margin-top: 20px; color: #fff; text-decoration: none; font-weight: 600;
+        padding: 14px 28px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        border-radius: 10px; transition: all 0.3s ease;
+      }
+      .back-link:hover { transform: translateY(-2px); }
+      .badge-locked { background: #10b981; color: #fff; padding: 4px 10px; border-radius: 12px; font-size: 12px; }
+      .mode-peak { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+      .mode-off-peak { background-color: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
+      .mode-depot { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    </style>
+  </head>
+  <body>
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <h2><i class="fas fa-train"></i> MUMBAI METRO</h2>
+        <p>Line 1 Control Centre</p>
+      </div>
+      <ul class="nav-menu">
+        <li><a href="/"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a></li>
+        <li><a href="/schedule"><i class="fas fa-calendar-alt"></i><span>Schedule</span></a></li>
+        <li><a href="/inventory"><i class="fas fa-clipboard-list"></i><span>Fleet Inventory</span></a></li>
+        <li><a href="/analytics" class="active"><i class="fas fa-chart-line"></i><span>Analysis</span></a></li>
+        
+      </ul>
+      <div class="logout-section">
+        <a href="/logout" class="logout-btn"><i class="fas fa-sign-out-alt" style="margin-right: 10px;"></i> LOGOUT</a>
+      </div>
+    </nav>
+    <main class="main-content">
+      <div class="top-bar">
+        <h2 style="color: #1f2937;">Timetable Analysis</h2>
+        <p style="color: #6b7280; font-size: 14px;">Standby rake and locked schedule details</p>
+      </div>
+      <div class="content-area">
+        <div class="page-header">
+          <h1><i class="fas fa-chart-line"></i> ANALYSIS</h1>
+          <p>Three-section analysis: Standby rake history, locked timetables with PDF access, and current day's detailed schedule.</p>
+        </div>
+        
+        <!-- Card 1: Standby Rake History -->
+        <div class="card" style="border-left-color: #3b82f6;">
+          <h3 style="margin-bottom: 15px;"><i class="fas fa-history"></i> Standby Rake History</h3>
+          <p style="color: #6b7280; margin-bottom: 15px;">Historical record of standby rakes assigned by round-robin across all days.</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Standby Rake</th>
+                <th>Locked at</th>
+                <th>Fleet Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in locked_schedules %}
+              <tr>
+                <td>{{ s.date }}</td>
+                <td>{{ s.standby_rake or '—' }}</td>
+                <td>{{ (s.locked_at or '')[:19] if s.locked_at else '—' }}</td>
+                <td>{{ 'Yes' if s.fleet_updated_at else 'No' }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="4">No standby rake history available. Lock schedules from the Schedule page.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Card 2: Locked Timetables with PDF Access (top 10 days) -->
+        <div class="card" style="border-left-color: #10b981;">
+          <h3 style="margin-bottom: 15px;"><i class="fas fa-file-pdf"></i> Locked Timetables - PDF Archive (Top 10)</h3>
+          <p style="color: #6b7280; margin-bottom: 15px;">Download PDFs or permanently delete specific locked days. Older days remain stored in the database.</p>
+          {% for s in locked_schedules %}
+          <div style="margin-bottom: 20px; padding: 15px; background: #f9fafb; border-radius: 10px; border-left: 4px solid #10b981;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+              <div>
+                <strong style="font-size: 16px;">{{ s.date }}</strong>
+                <span style="margin-left: 15px; color: #6b7280;">Standby: {{ s.standby_rake or '—' }}</span>
+                {% if s.locked_by %}
+                <span style="margin-left: 15px; color: #9ca3af; font-size: 13px;">Locked by {{ s.locked_by }}</span>
+                {% endif %}
+              </div>
+              <div style="display:flex; gap:8px;">
+                <a href="/api/locked_schedule_pdf/{{ s.date }}" class="btn" style="padding: 8px 16px; font-size: 13px; text-decoration: none; display: inline-block;">
+                  <i class="fas fa-file-download"></i> PDF
+                </a>
+                <button type="button" class="btn" style="padding: 8px 12px; font-size: 13px; background:#ef4444;" onclick="deleteLockedSchedule('{{ s.date }}')">
+                  <i class="fas fa-trash-alt"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          {% else %}
+          <p style="color: #6b7280;">No locked schedules available. Lock schedules from the Schedule page to generate PDF records.</p>
+          {% endfor %}
+        </div>
+
+        <!-- Card 3: Present Day Locked Timetable Details -->
+        <div class="card" style="border-left-color: #f59e0b;">
+          <h3 style="margin-bottom: 15px;"><i class="fas fa-calendar-day"></i> Current Day - Detailed Timetable</h3>
+          <p style="color: #6b7280; margin-bottom: 15px;">Detailed view of today's locked timetable with full trip information.</p>
+          {% set today = now.strftime('%Y-%m-%d') if now else '' %}
+          {% for s in locked_schedules %}
+            {% if s.date == today %}
+            <div style="margin-bottom: 20px;">
+              <div style="background: #fef3c7; padding: 15px; border-radius: 10px; margin-bottom: 15px; border-left: 4px solid #f59e0b;">
+                <strong>Today's Schedule: {{ s.date }}</strong><br/>
+                <span style="color: #6b7280; font-size: 14px;">Standby Rake: {{ s.standby_rake or '—' }} | 
+                Locked at: {{ (s.locked_at or '')[:19] if s.locked_at else 'Not locked yet' }} | 
+                Fleet Updated: {{ 'Yes' if s.fleet_updated_at else 'Pending' }}</span>
+              </div>
+              <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 10px;">
+                <table>
+                  <thead style="position: sticky; top: 0; background: #f3f4f6; z-index: 1;">
+                    <tr>
+                      <th>Sr No</th>
+                      <th>Rake No</th>
+                      <th>Departure Time</th>
+                      <th>Mode</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for row in (s.timetable or []) %}
+                    <tr>
+                      <td>{{ row.Serial_No }}</td>
+                      <td>{{ row.Rake_No }}</td>
+                      <td>{{ row.Time }}</td>
+                      <td>
+                        <span class="mode-badge {% if row.Mode == 'Peak' %}mode-peak {% elif row.Mode == 'Off-Peak' %}mode-off-peak {% else %}mode-depot{% endif %}">
+                          {{ row.Mode }}
+                        </span>
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              <div style="margin-top: 15px; text-align: right;">
+                <a href="/api/locked_schedule_pdf/{{ s.date }}" class="btn" style="padding: 10px 20px;">
+                  <i class="fas fa-file-pdf"></i> Download Full PDF
+                </a>
+              </div>
+            </div>
+            {% endif %}
+          {% else %}
+          <p style="color: #6b7280;">No locked schedule for today. Lock today's schedule from the Schedule page.</p>
+          {% endfor %}
+        </div>
+        <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+      </div>
+    </main>
+    <script>
+      function deleteLockedSchedule(dateStr) {
+        if (!confirm('Delete locked schedule for ' + dateStr + ' permanently?')) {
+          return;
+        }
+        fetch('/api/delete_locked_schedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: dateStr })
+        })
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (data.status === 'success') {
+              alert('Locked schedule deleted.');
+              window.location.reload();
+            } else {
+              alert(data.message || 'Delete failed');
+            }
+          })
+          .catch(function() {
+            alert('Server error while deleting schedule.');
+          });
+      }
+    </script>
+  </body>
+</html>
