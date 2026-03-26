@@ -51,11 +51,17 @@
         }
 
         .logo-icon {
-            font-size: 60px;
-            color: #FFD200;
-            margin-bottom: 15px;
+            width: 140px;
+            height: 140px;
+            overflow: hidden;   /* hides extra area */
+            margin: 0 auto 15px;
         }
 
+        .logo-icon img {
+            width: 180px;       /* zoom in */
+            margin-left: -20px; /* move left */
+            margin-top: -25px;  /* move up */
+        }
         .logo-section h1 {
             color: #374151;
             font-size: 28px;
@@ -165,8 +171,8 @@
 <body>
     <div class="login-container">
         <div class="logo-section">
-            <div class="logo-icon">
-                <i class="fas fa-train"></i>
+            <div class="logo-icon img ">
+                <img src="https://res.cloudinary.com/dctrybclo/image/upload/f_auto,q_auto/light_ov2ocy">
             </div>
             <h1>MUMBAI METRO</h1>
             <p>Line 1 Control Centre</p>
