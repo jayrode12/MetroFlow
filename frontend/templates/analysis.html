@@ -70,14 +70,48 @@
       .mode-peak { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
       .mode-off-peak { background-color: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
       .mode-depot { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+          .logo-icon {
+        width: 140px;
+        height: 80px;
+        overflow: hidden;
+        margin: 0 auto 10px;
+    }
+    
+    .logo-icon img {
+        width: 220px;  /* zoom */
+        transform: translate(-40px, -55px); /* adjust position */
+    }
+    .logo-section {
+        text-align: center;
+        margin-bottom: 15px;
+    }
+    
+    .logo-section h1 {
+        color: #374151;
+        font-size: 26px;
+        margin-bottom: 5px;
+        font-weight: 700;
+    }
+    
+    .subtitle {
+        color: #6b7280;
+        font-size: 13px;
+        margin-bottom: 10px;
+    }
     </style>
-  </head>
-  <body>
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
     <nav class="sidebar">
-      <div class="sidebar-header">
-        <h2><i class="fas fa-train"></i> MUMBAI METRO</h2>
-        <p>Line 1 Control Centre</p>
-      </div>
+        <div class="logo-section" style="padding-top: 15px;">
+            <div class="logo-icon img ">
+                <img src="https://res.cloudinary.com/dctrybclo/image/upload/f_auto,q_auto/light_ov2ocy" alt="logo">
+            </div>
+
+            <h2> MUMBAI METRO</h2>
+            <p class="subtitle">Line 1 Control Centre</p>
+        </div>
       <ul class="nav-menu">
         <li><a href="/"><i class="fas fa-tachometer-alt"></i><span>Dashboard</span></a></li>
         <li><a href="/schedule"><i class="fas fa-calendar-alt"></i><span>Schedule</span></a></li>
