@@ -1,261 +1,107 @@
-# 🚇 Mumbai Metro Rail Management System
+# 🚇 MetroFlow: Mumbai Metro Rail Management System
 
-AI-Powered Timetable Prediction & Fleet Inventory Management
+MetroFlow is an end-to-end AI-powered scheduling and fleet management system built for the Mumbai Metro Line 1. It automates timetable generation, tracks real-time fleet health, and utilizes machine learning to intelligently prioritize metro units (rakes) for operation and maintenance.
 
-A web-based management platform designed for Mumbai Metro Line 1.  
-The system uses Artificial Intelligence to generate optimized train schedules using weather data, passenger demand patterns, and fleet availability.
+## 🌟 Key Features
 
---------------------------------------------------
+- **AI-Powered Schedule Generation**: Dynamically creates daily timetables based on active fleet status, automatically allocating operational and standby rakes.
+- **Machine Learning Fleet Prioritization**: Uses a Random Forest algorithm to optimize the use of metro units based on their accumulated mileage and service history.
+- **Intelligent Standby Rotation**: Uses a round-robin algorithm to cycle standby vehicles across consecutive operational days seamlessly.
+- **Real-Time Fleet Health Monitoring**: Automatically flags rakes for maintenance (e.g., crossing the 5000 KM threshold) and adjusts their availability.
+- **Analytics & PDF Export**: Provides a comprehensive three-card analytics dashboard, tracking standby rake history, archiving locked schedules through automated PDF generation, and presenting real-time timetables.
+- **Responsive Dashboard UI**: Visually rich interfaces including interactive dashboards and visual tracking of fleet inventory health using Plotly charts.
 
-## 📋 Features
-
-### AI Schedule Generation
-• Generates 7-day metro timetable automatically  
-• Uses Random Forest Regression model  
-• Considers weather conditions, demand patterns, and fleet status  
-
-### Fleet Inventory Management
-• Tracks 16 metro rakes  
-• Monitors total mileage of each rake  
-• Automatic maintenance alerts after 5000 KM  
-• Real-time health monitoring of fleet
-
-### Real-Time Dashboard
-• Displays current weather conditions using OpenWeather API  
-• Shows system alerts and notifications  
-• Provides activity logs for system monitoring  
-• Interactive metro map visualization
-
-### Smart Maintenance Logic
-• Rakes automatically flagged for maintenance above 5000 KM  
-• Train frequency dynamically adjusted based on weather  
-• Weekend and weekday demand patterns handled separately
-
---------------------------------------------------
+---
 
 ## 🛠️ Tech Stack
 
-Backend
-Python 3.8+
-Flask
-MongoDB
-PyMongo
-Pandas
-NumPy
+### Core Frameworks
+- **Backend Server:** Python, Flask, RESTful APIs
+- **Frontend Server:** Python, Flask (acting as reverse proxy), HTML5, CSS3, JavaScript (Jinja2 Templates)
+- **Database:** MongoDB (using `pymongo`)
 
-Frontend
-HTML5
-CSS3
-JavaScript
-Flask Jinja Templates
-Font Awesome
-MapTiler SDK
+### Machine Learning & Data Processing
+- **Algorithms:** Scikit-Learn (Random Forest Regressor)
+- **Data Manipulation:** Pandas, NumPy
 
-Machine Learning & Data
-Scikit-learn (Random Forest Regressor)
-Plotly (Data Visualization)
-OpenWeather API (Weather Data)
+### Visualization & Reporting
+- **Interactive Charts:** Plotly (`plotly.express`)
+- **PDF Generation:** ReportLab (`reportlab`)
 
---------------------------------------------------
+### External Integration
+- **Live Weather Data:** OpenWeather API Integration
 
-## 🏗️ System Architecture
+---
 
-Frontend (Port 5000)
-        │
-        ▼
-Backend API (Port 5001)
-        │
-        ▼
-MongoDB Database
+## 🧠 Algorithms & Machine Learning Models
 
-The frontend interacts with the backend Flask API which processes data and communicates with the MongoDB database.
+### 1. Fleet Prioritization - Random Forest Regressor
+**Purpose:** To decide the optimal order in which active rakes should be deployed into service.  
+**How it Works:** 
+- The system trains a **Random Forest Regressor** using synthetic features such as `km_since_last_service` and `total_distance_km`. 
+- The model learns to rank rakes by predicting an explicit "fitness score" — prioritizing vehicles that have lower kilometers driven since their last service.
+- The sorted array determines the assignment of operational cycles for the day, ensuring wear and tear is uniformly distributed across the fleet.
 
---------------------------------------------------
+### 2. Standby Allocation - Round-Robin Algorithm
+**Purpose:** Ensure a fair and consistent rotation of backup (standby) units across the schedule.
+**How it Works:**
+- Each day, the system reserves one rake to act as a standby replacement.
+- The allocation employs a round-robin shift mechanism anchored securely to the prior locked day. This ensures a continuously rotating standby choice without re-selecting yesterday's backup unit.
 
-## 📦 Installation
+### 3. Cumulative Distance Algorithm
+**Purpose:** Compute wear and tear reflecting real-world operations dynamically.
+**How it Works:**
+- At the end of the day or immediately upon a schedule lock, a reconciliation algorithm calculates the explicit trips taken by each assigned rake (accounting for any emergency replacements), aggregating total distance based on Mumbai Metro Line 1 configurations (e.g., 23 km per trip slot) and pushing updates to MongoDB automatically.
+
+---
+
+## 🏗️ Architecture
+
+The system operates on a dual-Flask architecture connected via MongoDB:
+```
+[ Frontend (Port 5000) ] ← Proxy → [ Backend (Port 5001) ] ← PyMongo → [ MongoDB ]
+        |                                    |                              |
+  Jinja Templates                   ML Engine | Rest API             (Fleet, Schedules)
+```
+
+## 🚀 Quick Start Guide
 
 ### Prerequisites
+- Python 3.8+
+- MongoDB instance running locally on default port `27017`
 
-Python 3.8+
-MongoDB
-Git
-
-### Step 1 — Clone Repository
-
-git clone https://github.com/jayrode12/MetroFlow.git
-cd MetroFlow
-
-### Step 2 — Install Backend Dependencies
-
-cd backend
-pip install -r requirements.txt
-
-### Step 3 — Start MongoDB
-
-mongod
-
-### Step 4 — Initialize Database
-
+### 1. Initialization
+First, initialize the database and collections:
+```bash
 cd backend
 python init_db.py
+```
 
-This will create:
-• MumbaiMetroDB database  
-• Fleet inventory data  
-• Weather dataset  
-• Passenger demand dataset  
+### 2. Start Servers
+You will need to open two separate terminal instances.
 
-### Step 5 — Start Backend
-
+**Terminal 1 (Backend):**
+```bash
+cd backend
 python main.py
+```
 
-Backend will run at:
-http://127.0.0.1:5001
-
-### Step 6 — Start Frontend
-
-Open new terminal
-
+**Terminal 2 (Frontend):**
+```bash
 cd frontend
 python app.py
+```
 
-Frontend will run at:
-http://127.0.0.1:5000
+### 3. Access Application
+Navigate to `http://localhost:5000` in your web browser. 
+- **Admin Username:** `admin`
+- **Admin Password:** `metro2025`
 
---------------------------------------------------
+---
 
-## 🚀 Usage
+## 📖 Additional Documentation
 
-### Login
-
-Username: admin  
-Password: metro2025  
-
-### Generate Schedule
-
-1. Open Dashboard
-2. Click "Generate Schedule"
-3. System creates a new AI timetable for 7 days
-
-### Fleet Inventory
-
-1. Open Fleet Inventory page
-2. View all 16 metro rakes
-3. Monitor mileage and maintenance status
-4. Approve maintenance updates
-
---------------------------------------------------
-
-## 🔌 API Endpoints
-
-Public Endpoints
-
-GET /api/weather  
-Returns current weather data
-
-GET /api/fleet  
-Returns fleet inventory data (authentication required)
-
-GET /api/logs  
-Returns system logs
-
-Protected Endpoints
-
-POST /approve_inventory  
-Update fleet maintenance status
-
-POST /commit_schedule  
-Save generated timetable
-
-GET /generate  
-Generate new AI schedule
-
---------------------------------------------------
-
-## 📁 Project Structure
-
-MetroFlow
-│
-├── backend
-│   ├── data
-│   │   ├── metro_fleet_inventory.csv
-│   │   ├── mumbai_metro_weather_2025.csv
-│   │   └── passenger_demand_2025.csv
-│   ├── database.py
-│   ├── init_db.py
-│   ├── main.py
-│   └── requirements.txt
-│
-├── frontend
-│   ├── templates
-│   │   ├── index.html
-│   │   ├── inventory.html
-│   │   ├── login.html
-│   │   └── schedule.html
-│   └── app.py
-│
-├── .gitignore
-└── SETUP_GUIDE.md
-
---------------------------------------------------
-
-## ⚙️ Maintenance Rules
-
-5000 KM Rule  
-Any metro rake exceeding 5000 km since its last service is automatically marked for maintenance.
-
-Weather Based Frequency
-
-Temperature > 32°C → 3 minute interval  
-Temperature 28-32°C → 5 minute interval  
-Temperature < 28°C → 7 minute interval  
-
-Passenger Demand
-
-Weekdays → 20 trips per hour  
-Weekends → 15 trips per hour  
-
---------------------------------------------------
-
-## 📊 Database Collections
-
-fleet  
-Contains information of 16 metro rakes
-
-schedules  
-Stores generated AI timetables
-
-logs  
-System activity and audit logs
-
-weather  
-Historical weather dataset
-
-demand  
-Passenger demand dataset
-
---------------------------------------------------
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Submit a Pull Request
-
---------------------------------------------------
-
-## 📄 License
-
-MIT License
-
---------------------------------------------------
-
-## 👨‍💻 Author
-
-Jay Rode  
-GitHub: https://github.com/jayrode12
-
---------------------------------------------------
-
-Made with ❤️ for Mumbai Metro
+For more in-depth testing and setup details, please review our other markdown files:
+- `QUICK_START.md` - Step-by-step guides for workflows (Reporting Changes, Auto-maintenance).
+- `SETUP_GUIDE.md` - Further details on routes, architectural flow, and database schemas.
+- `TESTING_GUIDE.md` - Scripts and test cases for validating core workflows.

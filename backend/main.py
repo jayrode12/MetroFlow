@@ -6,8 +6,7 @@ import plotly.io as pio
 from datetime import datetime, timedelta
 import requests
 import random
-import numpy as np
-from sklearn.ensemble import RandomForestRegressor
+from model import order_fleet_by_random_forest
 
 # ====================
 # Flask App Setup
@@ -110,23 +109,6 @@ KM_PER_TRIP = 23
 # Number of days to generate in schedule (2 days)
 SCHEDULE_DAYS = 2
 
-def _order_fleet_by_random_forest(active_rakes):
-    """Use Random Forest to order rakes: lower km_since_service = higher priority to run (arrange fleet)."""
-    if not active_rakes:
-        return []
-    # Synthetic training: lower km_since -> more trips (higher target). RF learns to rank.
-    X = np.array([[r.get("km_since_last_service", 0), r.get("total_distance_km", 0)] for r in active_rakes])
-    # Target: inverse of km_since so rakes with less km get higher score
-    y = np.array([max(0, 5000 - r.get("km_since_last_service", 0)) for r in active_rakes])
-    if np.all(y == 0):
-        y = np.array([1.0] * len(active_rakes))
-    model = RandomForestRegressor(n_estimators=10, random_state=42)
-    model.fit(X, y)
-    scores = model.predict(X)
-    # Sort descending: higher score = earlier in list = used first in round-robin
-    indexed = list(zip(scores, active_rakes))
-    indexed.sort(key=lambda x: -x[0])
-    return [r for _, r in indexed]
 
 def generate_ai_schedule(weather_temp, weather_cond, fleet_data):
     """Generate AI-powered schedule for the **next two days**.
@@ -142,7 +124,7 @@ def generate_ai_schedule(weather_temp, weather_cond, fleet_data):
         return None
 
     # Order fleet by Random Forest (lower distance => higher priority)
-    ordered_rakes = _order_fleet_by_random_forest(active_rakes)
+    ordered_rakes = order_fleet_by_random_forest(active_rakes)
     n_rakes = len(ordered_rakes)
 
     # Base date: start from tomorrow, so that today’s generation
