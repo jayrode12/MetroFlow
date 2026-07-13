@@ -59,7 +59,7 @@ MetroFlow is an end-to-end AI-powered scheduling and fleet management system bui
 
 The system operates on a dual-Flask architecture connected via MongoDB:
 ```
-[ Frontend (Port 5000) ] ← Proxy → [ Backend (Port 5001) ] ← PyMongo → [ MongoDB ]
+[ Frontend (Port 5001) ] ← Proxy → [ Backend (Port 5001) ] ← PyMongo → [ MongoDB ]
         |                                    |                              |
   Jinja Templates                   ML Engine | Rest API             (Fleet, Schedules)
 ```
@@ -93,7 +93,7 @@ python app.py
 ```
 
 ### 3. Access Application
-Navigate to `http://localhost:5000` in your web browser. 
+Navigate to `http://localhost:5001` in your web browser. 
 - **Admin Username:** `admin`
 - **Admin Password:** `metro2025`
 

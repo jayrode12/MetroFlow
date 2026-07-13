@@ -393,7 +393,7 @@
           </a>
         </li>
         <li>
-          <a href="/analytics">
+          <a href="/analysis">
             <i class="fas fa-chart-line"></i>
             <span>Analysis</span>
           </a>
@@ -450,21 +450,16 @@
           <p style="color: #92400e; font-weight: 600;"><i class="fas fa-info-circle"></i> Timetable was unlocked due to fleet data change. Please regenerate schedule and lock again. You will be asked to confirm before locking.</p>
         </div>
         {% endif %}
-        <div class="card" style="border-left-color: #9ca3af">
-          <div class="status-header">
-            <h3>
-              <i class="fas fa-cloud-sun"></i> Weather Context: {{ cond }}
-            </h3>
-            <span class="badge">Frequency: {{ gap }} min</span>
-          </div>
-          <p style="font-size: 15px; color: #6b7280">
-            <i class="fas fa-info-circle"></i> Prediction based on
-            <b>{{ temp }}°C</b> weather and historical passenger demand.
-          </p>
-        </div>
+
 
         {% for day in schedules %}
         <div class="card" id="card-{{ loop.index }}">
+          <div class="status-header" style="border-bottom: 1px solid #e5e7eb; padding-bottom: 15px; margin-bottom: 15px;">
+            <h3 style="color: #1f2937;">
+              <i class="fas fa-cloud-sun" style="color:#f59e0b;"></i> {{ day.weather.condition if day.weather else cond }} | {{ day.weather.temp if day.weather else temp }}°C
+            </h3>
+            <span class="badge" style="background:#dbeafe; color:#1e40af; border:none;">Frequency: {{ gap }} min</span>
+          </div>
           <div
             style="
               display: flex;
@@ -488,14 +483,17 @@
               <button class="btn btn-lock" id="btn-{{ loop.index }}" disabled style="background:#9ca3af;margin-top:6px;">
                 <i class="fas fa-lock"></i> LOCKED
               </button>
-              <button type="button" class="btn btn-report" id="report-btn-{{ loop.index }}" onclick="openReportModal('{{ day.date }}', '{{ day.standby }}', {{ loop.index }})" style="margin-top:6px;background:#f59e0b;color:#fff;">
+              <button type="button" class="btn btn-report" id="report-btn-{{ loop.index }}" data-date="{{ day.date }}" data-standby="{{ day.standby }}" data-index="{{ loop.index }}" onclick="openReportModal(this.dataset.date, this.dataset.standby, this.dataset.index)" style="margin-top:6px;background:#f59e0b;color:#fff;">
                 <i class="fas fa-exchange-alt"></i> Report change
               </button>
               {% else %}
               <button
                 class="btn btn-lock"
                 id="btn-{{ loop.index }}"
-                onclick="lockDay('{{ day.date }}', {{ loop.index }}, '{{ day.standby }}')"
+                data-date="{{ day.date }}"
+                data-index="{{ loop.index }}"
+                data-standby="{{ day.standby }}"
+                onclick="lockDay(this.dataset.date, this.dataset.index, this.dataset.standby)"
               >
                 <i class="fas fa-lock"></i> LOCK & SAVE
               </button>
@@ -535,6 +533,12 @@
               </tbody>
             </table>
           </div>
+          {% if day.accuracy %}
+          <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e5e7eb; display:flex; justify-content: space-between; align-items: center;">
+            <span style="color: #6b7280; font-weight: 600;"><i class="fas fa-bullseye"></i> AI Prediction Accuracy</span>
+            <span style="background: #10b981; color: #fff; padding: 4px 10px; border-radius: 12px; font-weight: bold;">{{ day.accuracy }}%</span>
+          </div>
+          {% endif %}
         </div>
         {% endfor %}
 
@@ -708,6 +712,27 @@
           });
         });
 
+        // extract accuracy if present
+        let accMatch = null;
+        const card = document.getElementById("card-" + index);
+        if(card && card.innerHTML.includes("bullseye")) {
+            const accSpan = card.querySelector('span[style*="10b981"]');
+            if(accSpan) {
+                accMatch = parseFloat(accSpan.innerText.replace("%", ""));
+            }
+        }
+        
+        let wTemp = null;
+        let wCond = null;
+        if(card) {
+             const wText = card.querySelector('.status-header h3').innerText;
+             if(wText.includes("|")) {
+                 const parts = wText.split("|");
+                 wCond = parts[0].trim();
+                 wTemp = parseInt(parts[1].trim());
+             }
+        }
+
         fetch("/commit_schedule", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -715,6 +740,8 @@
             date: dateStr,
             standby: standbyRake,
             timetable: timetable,
+            accuracy: accMatch,
+            weather: {temp: wTemp, condition: wCond}
           }),
         })
           .then((res) => res.json())

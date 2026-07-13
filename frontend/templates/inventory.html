@@ -266,6 +266,21 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
         }
+
+      @media print {
+        .btn-group,
+        .back-link,
+        .sidebar {
+          display: none;
+        }
+        .main-content {
+          margin-left: 0;
+        }
+        .card {
+          box-shadow: none;
+          border: 1px solid #e5e7eb;
+        }
+      }
     .logo-icon {
         width: 140px;
         height: 80px;
@@ -329,7 +344,7 @@
             </a>
         </li>
         <li>
-            <a href="/analytics">
+            <a href="/analysis">
                 <i class="fas fa-chart-line"></i>
                 <span>Analysis</span>
             </a>

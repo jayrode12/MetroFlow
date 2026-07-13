@@ -5,3 +5,7 @@ requests
 scikit-learn
 plotly
 reportlab
+python-dotenv
+dnspython
+pytz
+joblib

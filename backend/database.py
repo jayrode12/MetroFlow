@@ -1,9 +1,14 @@
+import os
 from pymongo import MongoClient
+from dotenv import load_dotenv
+
+env_path = os.path.join(os.path.dirname(__file__), ".env")
+load_dotenv(env_path)
 
 # ==============================
 # MongoDB Configuration
 # ==============================
-MONGO_URI = "mongodb://localhost:27017/"
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
 DB_NAME = "MumbaiMetroDB"   # ✅ AI removed, matches your MongoDB
 
 # ==============================

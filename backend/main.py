@@ -3,7 +3,13 @@ from pymongo import MongoClient
 import pandas as pd
 import plotly.express as px
 import plotly.io as pio
+import pytz
 from datetime import datetime, timedelta
+import os
+from dotenv import load_dotenv
+
+env_path = os.path.join(os.path.dirname(__file__), ".env")
+load_dotenv(env_path)
 import requests
 import random
 from model import order_fleet_by_random_forest
@@ -11,7 +17,6 @@ from model import order_fleet_by_random_forest
 # ====================
 # Flask App Setup
 # ====================
-import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FRONTEND_DIR = os.path.join(BASE_DIR, '..', 'frontend')
 
@@ -20,15 +25,12 @@ app = Flask(
     template_folder=os.path.join(FRONTEND_DIR, 'templates'),
     static_folder=os.path.join(FRONTEND_DIR, 'static')
 )
-app.secret_key = 'mumbai_metro_secret_key_2025'
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'mumbai_metro_secret_key_2025')
 
 # ====================
 # MongoDB Connection
 # ====================
-MONGO_URI = "mongodb://localhost:27017/"
-DB_NAME = "MumbaiMetroDB"
-client = MongoClient(MONGO_URI)
-db = client[DB_NAME]
+from database import db
 fleet_col = db.get_collection("fleet")
 schedule_col = db.get_collection("schedules")
 logs_col = db.get_collection("logs")
@@ -60,7 +62,9 @@ def get_fresh_fleet():
 def get_live_weather():
     """Fetch live weather from OpenWeather API or return mock data"""
     try:
-        API_KEY = "f99b3325008a9421b84a1c21685df9b4"  # Replace with actual key
+        API_KEY = os.getenv("OPENWEATHER_API_KEY")
+        if not API_KEY:
+            raise ValueError("No API Key found")
         city = "Mumbai"
         url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}&units=metric"
         response = requests.get(url, timeout=5)
@@ -78,7 +82,7 @@ def get_live_weather():
 
 def add_log(message):
     """Add entry to system logs"""
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now(pytz.timezone('Asia/Kolkata')).strftime("%Y-%m-%d %H:%M:%S")
     log_entry = f"{timestamp} - {message}"
     logs_col.insert_one({"message": message, "timestamp": timestamp})
     return log_entry
@@ -124,12 +128,12 @@ def generate_ai_schedule(weather_temp, weather_cond, fleet_data):
         return None
 
     # Order fleet by Random Forest (lower distance => higher priority)
-    ordered_rakes = order_fleet_by_random_forest(active_rakes)
+    ordered_rakes, accuracy_percentage = order_fleet_by_random_forest(active_rakes)
     n_rakes = len(ordered_rakes)
 
     # Base date: start from tomorrow, so that today’s generation
     # always produces schedules for the next 2 days (D+1, D+2).
-    base_date = (datetime.now() + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    base_date = (datetime.now(pytz.timezone('Asia/Kolkata')) + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
 
     # Determine round‑robin starting index from the most recent locked schedule.
     # This ensures: previous day's standby won't be standby again the next day.
@@ -204,7 +208,13 @@ def generate_ai_schedule(weather_temp, weather_cond, fleet_data):
             rake_index += 1
             trip_number += 1
 
-        schedules.append({"date": date_str, "standby": standby_rake, "timetable": timetable})
+        schedules.append({
+            "date": date_str, 
+            "standby": standby_rake, 
+            "timetable": timetable,
+            "accuracy": accuracy_percentage,
+            "weather": {"temp": weather_temp, "condition": weather_cond}
+        })
 
     return {
         "schedules": schedules,
@@ -222,6 +232,7 @@ def home():
     """Dashboard route"""
     if not session.get("logged_in"):
         return redirect(url_for("login"))
+    _run_auto_lock_if_due()
     _run_auto_end_of_day_if_due()
     fleet_data = get_fresh_fleet()
     temp, humidity, cond = get_live_weather()
@@ -246,7 +257,7 @@ def home():
         cond=cond,
         logs=log_messages,
         alerts=alerts,
-        now=datetime.now()
+        now=datetime.now(pytz.timezone('Asia/Kolkata'))
     )
 
 @app.route("/inventory")
@@ -255,6 +266,7 @@ def inventory():
     if not session.get("logged_in"):
         return redirect(url_for("login"))
     # Ensure end-of-day mileage update runs if due
+    _run_auto_lock_if_due()
     _run_auto_end_of_day_if_due()
 
     fleet_data = get_fresh_fleet()
@@ -279,7 +291,7 @@ def inventory():
     
     return render_template(
         "inventory.html",
-        chart_html=pio.to_html(fig, full_html=False),
+        chart_html=pio.to_html(fig, full_html=False, include_plotlyjs='cdn'),
         inventory_data=fleet_data
     )
 
@@ -288,8 +300,9 @@ def schedule():
     """Schedule management route. Merges locked days from DB into displayed schedule."""
     if not session.get("logged_in"):
         return redirect(url_for("login"))
+    _run_auto_lock_if_due()
     _run_auto_end_of_day_if_due()
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = datetime.now(pytz.timezone('Asia/Kolkata')).strftime("%Y-%m-%d")
     existing_schedule = schedule_col.find_one({"generated_date": today})
 
     if existing_schedule:
@@ -319,6 +332,8 @@ def schedule():
             day["locked_at"] = locked_doc.get("locked_at", "")
             day["locked_by"] = locked_doc.get("locked_by", "")
             day["replacements"] = replacements
+            day["accuracy"] = locked_doc.get("accuracy")
+            day["weather"] = locked_doc.get("weather")
         else:
             day["locked"] = False
             day["replacements"] = []
@@ -340,7 +355,7 @@ def login():
         password = request.form.get("password")
         
         # Simple authentication (can be enhanced with DB)
-        if username == "admin" and password == "metro2025":
+        if username == os.getenv("ADMIN_USERNAME", "admin") and password == os.getenv("ADMIN_PASSWORD", "metro2025"):
             session["logged_in"] = True
             session["username"] = username
             add_log(f"Admin login successful - {username}")
@@ -381,7 +396,7 @@ def generate():
             # Save to DB (clear only generated doc, keep locked day docs)
             schedule_col.delete_many({"generated_date": {"$exists": True}})
             schedule_col.insert_one({
-                "generated_date": datetime.now().strftime("%Y-%m-%d"),
+                "generated_date": datetime.now(pytz.timezone('Asia/Kolkata')).strftime("%Y-%m-%d"),
                 "schedules": schedule_data["schedules"],
                 "weather": {"temp": temp, "condition": cond},
             })
@@ -448,10 +463,12 @@ def commit_schedule():
                     "standby_rake": standby,
                     "timetable": timetable,
                     "locked": True,
-                    "locked_at": datetime.now().isoformat(),
+                    "locked_at": datetime.now(pytz.timezone('Asia/Kolkata')).isoformat(),
                     "locked_by": session.get("username"),
                     "fleet_updated_at": None,
                     "replacements": data.get("replacements") or [],
+                    "accuracy": data.get("accuracy"),
+                    "weather": data.get("weather")
                 }
             },
             upsert=True,
@@ -501,7 +518,7 @@ def api_report_change():
             if r.get("replaced_rake") == replaced_rake:
                 r["standby_rake"] = standby_rake
                 r["from_serial_no"] = from_serial_no or r.get("from_serial_no")
-                r["reported_at"] = datetime.now().isoformat()
+                r["reported_at"] = datetime.now(pytz.timezone('Asia/Kolkata')).isoformat()
                 found = True
                 break
 
@@ -510,7 +527,7 @@ def api_report_change():
                 "replaced_rake": replaced_rake,
                 "standby_rake": standby_rake,
                 "from_serial_no": from_serial_no,
-                "reported_at": datetime.now().isoformat()
+                "reported_at": datetime.now(pytz.timezone('Asia/Kolkata')).isoformat()
             })
 
         # Update schedule with replacements
@@ -544,15 +561,55 @@ def api_report_change():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+
+def _run_auto_lock_if_due():
+    now = datetime.now(pytz.timezone('Asia/Kolkata'))
+    today_str = now.strftime("%Y-%m-%d")
+    
+    generated = schedule_col.find_one({"generated_date": {"$exists": True}})
+    if generated and "schedules" in generated:
+        gen_date_str = generated["generated_date"]
+        should_lock = False
+        if today_str > gen_date_str:
+            should_lock = True
+        elif today_str == gen_date_str and now.hour == 23 and now.minute >= 59:
+            should_lock = True
+            
+        if should_lock:
+            gen_date_obj = datetime.strptime(gen_date_str, "%Y-%m-%d")
+            tomorrow_str = (gen_date_obj + timedelta(days=1)).strftime("%Y-%m-%d")
+            
+            locked = schedule_col.find_one({"date": tomorrow_str, "locked": True})
+            if not locked:
+                for day_sch in generated["schedules"]:
+                    if day_sch["date"] == tomorrow_str:
+                        schedule_col.update_one(
+                            {"date": tomorrow_str},
+                            {
+                                "$set": {
+                                    "standby_rake": day_sch["standby"],
+                                    "timetable": day_sch["timetable"],
+                                    "locked": True,
+                                    "locked_at": now.isoformat(),
+                                    "locked_by": "System Auto-Lock",
+                                    "fleet_updated_at": None,
+                                    "replacements": [],
+                                    "accuracy": day_sch.get("accuracy"),
+                                    "weather": day_sch.get("weather", generated.get("weather", {}))
+                                }
+                            },
+                            upsert=True,
+                        )
+                        add_log(f"Auto-locked schedule for {tomorrow_str}")
+                        break
+
 def _run_auto_end_of_day_if_due():
     """If current time >= 23:45, run end-of-day fleet update.
 
     - Processes **all locked days up to and including today** where `fleet_updated_at` is not set.
     - Uses the final locked timetable (after replacements) so mileage reflects actual operations.
     """
-    now = datetime.now()
-    if now.hour < 23 or (now.hour == 23 and now.minute < 45):
-        return
+    now = datetime.now(pytz.timezone('Asia/Kolkata'))
     today_str = now.strftime("%Y-%m-%d")
 
     # Find all locked schedules (past and today) that have not yet updated fleet kms
@@ -560,7 +617,6 @@ def _run_auto_end_of_day_if_due():
         schedule_col.find(
             {
                 "locked": True,
-                "date": {"$lte": today_str},
                 "fleet_updated_at": {"$exists": False},
             }
         )
@@ -572,6 +628,11 @@ def _run_auto_end_of_day_if_due():
 
     for locked in pending:
         date = locked.get("date")
+        
+        if date > today_str:
+            continue
+        if date == today_str and not (now.hour == 23 and now.minute >= 45):
+            continue
         base_timetable = locked.get("timetable") or []
         replacements = locked.get("replacements") or []
         standby_rake = locked.get("standby_rake")
@@ -586,7 +647,7 @@ def _run_auto_end_of_day_if_due():
             )
         schedule_col.update_one(
             {"_id": locked["_id"]},
-            {"$set": {"fleet_updated_at": datetime.now().isoformat()}},
+            {"$set": {"fleet_updated_at": datetime.now(pytz.timezone('Asia/Kolkata')).isoformat()}},
         )
         add_log(f"Auto end-of-day fleet update for {date}")
 
@@ -598,7 +659,7 @@ def api_end_of_day():
         return jsonify({"status": "error", "message": "Not logged in"}), 401
     try:
         data = request.get_json() or {}
-        date = data.get("date") or (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+        date = data.get("date") or (datetime.now(pytz.timezone('Asia/Kolkata')) - timedelta(days=1)).strftime("%Y-%m-%d")
         locked = schedule_col.find_one({"date": date, "locked": True})
         if not locked:
             return jsonify({"status": "error", "message": f"No locked schedule for {date}"}), 400
@@ -610,7 +671,7 @@ def api_end_of_day():
         timetable = _apply_replacements(base_timetable, replacements, standby_rake)
         from collections import Counter
         trips_per_rake = Counter(row.get("Rake_No") for row in timetable if row.get("Rake_No"))
-        now_iso = datetime.now().isoformat()
+        now_iso = datetime.now(pytz.timezone('Asia/Kolkata')).isoformat()
         for rake_id, count in trips_per_rake.items():
             add_km = count * KM_PER_TRIP
             fleet_col.update_one(
@@ -668,7 +729,7 @@ def api_update_fleet_from_locked_all():
                 )
             schedule_col.update_one(
                 {"_id": locked["_id"]},
-                {"$set": {"fleet_updated_at": datetime.now().isoformat()}},
+                {"$set": {"fleet_updated_at": datetime.now(pytz.timezone('Asia/Kolkata')).isoformat()}},
             )
             updated_dates.append(date)
             add_log(f"Manual fleet update from locked schedule for {date} by {session.get('username')}")
@@ -685,7 +746,6 @@ def api_update_fleet_from_locked_all():
 
 
 @app.route("/analysis")
-@app.route("/analytics")
 def analysis():
     """Analysis: three cards – standby history, locked timetable history with PDF, and today's locked timetable.
 
@@ -693,6 +753,7 @@ def analysis():
     if not session.get("logged_in"):
         return redirect(url_for("login"))
     # Ensure any pending end-of-day mileage updates are applied before analysis view
+    _run_auto_lock_if_due()
     _run_auto_end_of_day_if_due()
     # Show only latest 10 locked schedule days; older ones stay in DB
     locked = list(
@@ -707,30 +768,9 @@ def analysis():
     return render_template(
         "analysis.html",
         locked_schedules=locked,
-        today_str=datetime.now().strftime("%Y-%m-%d"),
-        now=datetime.now(),
+        today_str=datetime.now(pytz.timezone('Asia/Kolkata')).strftime("%Y-%m-%d"),
+        now=datetime.now(pytz.timezone('Asia/Kolkata')),
     )
-
-
-@app.route("/api/delete_locked_schedule", methods=["POST"])
-def api_delete_locked_schedule():
-    """Permanently delete a locked schedule for a given date (used from Analysis page)."""
-    if not session.get("logged_in"):
-        return jsonify({"status": "error", "message": "Not logged in"}), 401
-    try:
-        data = request.get_json() or {}
-        date_str = data.get("date")
-        if not date_str:
-            return jsonify({"status": "error", "message": "date is required"}), 400
-
-        result = schedule_col.delete_one({"date": date_str, "locked": True})
-        if result.deleted_count == 0:
-            return jsonify({"status": "error", "message": "No locked schedule found for this date"}), 404
-
-        add_log(f"Locked schedule permanently deleted for {date_str} by {session.get('username')}")
-        return jsonify({"status": "success", "message": "Locked schedule deleted"})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 @app.route("/api/locked_schedule_pdf/<date_str>")
@@ -757,7 +797,11 @@ def api_locked_schedule_pdf(date_str):
         styles = getSampleStyleSheet()
         story = []
         story.append(Paragraph("Mumbai Metro Line 1 – Locked Schedule", styles["Title"]))
-        story.append(Paragraph(f"Date: {date_str} | Standby Rake: {standby}", styles["Normal"]))
+        weather = locked.get("weather", {})
+        temp = weather.get("temp", "N/A")
+        cond = weather.get("condition", "N/A")
+        acc = locked.get("accuracy", "N/A")
+        story.append(Paragraph(f"Date: {date_str} | Standby Rake: {standby} | Weather: {temp}C, {cond} | Accuracy: {acc}%", styles["Normal"]))
         story.append(Spacer(1, 12))
         data = [["Sr No", "Rake No", "Departure Time", "Mode"]] + [
             [str(r.get("Serial_No", "")), str(r.get("Rake_No", "")), str(r.get("Time", "")), str(r.get("Mode", ""))]
@@ -824,11 +868,36 @@ def api_get_logs():
     
     return jsonify({"status": "success", "data": recent_logs})
 
+@app.route("/api/delete_locked_schedule", methods=["POST"])
+def delete_locked_schedule():
+    """API endpoint to permanently delete a locked schedule"""
+    if not session.get("logged_in"):
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
+        
+    data = request.json
+    date_str = data.get("date")
+    
+    if not date_str:
+        return jsonify({"status": "error", "message": "Date is required"}), 400
+        
+    try:
+        # Delete from DB
+        result = schedule_col.delete_one({"date": date_str, "locked": True})
+        
+        if result.deleted_count > 0:
+            add_log(f"Locked schedule for {date_str} permanently deleted by {session.get('username')}")
+            return jsonify({"status": "success", "message": f"Schedule for {date_str} deleted successfully"})
+        else:
+            return jsonify({"status": "error", "message": "Schedule not found or already deleted"}), 404
+            
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 # ====================
 # Main Execution
 # ====================
 if __name__ == "__main__":
     print("🚇 Mumbai Metro Backend Server Starting...")
-    print(f"📊 Connected to MongoDB: {DB_NAME}")
+    print(f"📊 Connected to MongoDB: {db.name}")
     print(f"📂 Collections: {db.list_collection_names()}")
     app.run(debug=True, port=5001, host="0.0.0.0")

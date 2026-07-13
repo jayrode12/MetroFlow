@@ -4,9 +4,15 @@ Initialize MongoDB database with CSV data
 from pymongo import MongoClient
 import pandas as pd
 from datetime import datetime
+import os
+from dotenv import load_dotenv
+import pytz
+
+load_dotenv()
 
 # Connect to MongoDB
-client = MongoClient("mongodb://localhost:27017/")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+client = MongoClient(MONGO_URI)
 db = client["MumbaiMetroDB"]
 
 print("🔄 Initializing Mumbai Metro Database...")
@@ -61,9 +67,9 @@ except Exception as e:
 # 4. Initialize Logs Collection
 print("\n📝 Initializing Logs...")
 initial_logs = [
-    {"message": "Database initialized", "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")},
-    {"message": "Fleet data loaded successfully", "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")},
-    {"message": "System ready for operations", "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+    {"message": "Database initialized", "timestamp": datetime.now(pytz.timezone('Asia/Kolkata')).strftime("%Y-%m-%d %H:%M:%S")},
+    {"message": "Fleet data loaded successfully", "timestamp": datetime.now(pytz.timezone('Asia/Kolkata')).strftime("%Y-%m-%d %H:%M:%S")},
+    {"message": "System ready for operations", "timestamp": datetime.now(pytz.timezone('Asia/Kolkata')).strftime("%Y-%m-%d %H:%M:%S")}
 ]
 db.logs.insert_many(initial_logs)
 print(f"✅ Initialized {len(initial_logs)} log entries")
